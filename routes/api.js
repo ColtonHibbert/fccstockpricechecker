@@ -42,29 +42,78 @@ module.exports = async function (app) {
         
         
       }
-      const stockDataResponse = {};
+      let stockDataResponse = {};
 
-      if(stockSymbol1) {
+      if(stockSymbol1 && stockSymbol2 !== true ) {
         (async () => {
           const date = new Date();
-          const month = date.getMonth();
-          const today = date.getDay();
+          let month = (date.getMonth()) + 1;
+          if(month < 10) {
+            month = `0${month}`
+          }
+          const dayOfMonth = date.getDate();
           const year = date.getFullYear();
-          const dateRegex = new RegExp(`${month}-${today}-${year}`)
+          const todaysDate = `${year}-${month}-${dayOfMonth}`
           const stock1 = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockSymbol1}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
             res => res.json()
           ).then(data => {
             //console.log(data)
-            return data
+            let stock = data['Time Series (Daily)'][todaysDate]['1. open']
+            stock = Math.round(stock * 100) / 100;
+            return stock
           })
-          const timeSeriesDaily = 'Time Series (Daily)'
-          console.log(stock1.timeSeriesDaily, 'stock 1 before parse')
-          //const stock1Parsed = JSON.parse(stock1);
-          //console.log(stock1Parsed)
-        
-          //const answer = 
+          console.log(stock1)
+          const stock1SymbolUpper = stockSymbol1.toUpperCase();
+          stockDataResponse = {
+            "stockData": {
+              "stock": stock1SymbolUpper,
+              "price": stock1
+            }
+          }
         })()
-        
+        return stockDataResponse;
+      }
+
+      if (stockSymbol1 && stockSymbol2) {
+        (async () => {
+          const date = new Date();
+          let month = (date.getMonth()) + 1;
+          if(month < 10) {
+            month = `0${month}`
+          }
+          const dayOfMonth = date.getDate();
+          const year = date.getFullYear();
+          const todaysDate = `${year}-${month}-${dayOfMonth}`
+          const stock1 = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockSymbol1}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
+            res => res.json()
+          ).then(data => {
+            let stock = data['Time Series (Daily)'][todaysDate]['1. open']
+            stock = Math.round(stock * 100) / 100;
+            return stock
+          })
+          const stock2 = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockSymbol2}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
+            res => res.json()
+          ).then(data => {
+            let stock = data['Time Series (Daily)'][todaysDate]['1. open']
+            stock = Math.round(stock * 100) / 100;
+            return stock
+          })
+          const stock1SymbolUpper = stockSymbol1.toUpperCase();
+          const stock2SymbolUpper = stockSymbol2.toUpperCase();
+          stockDataResponse = {
+            "stockData": [
+              { 
+                "stock": stock1SymbolUpper,
+                "price": stock1 
+              },
+              {
+                "stock": stock2SymbolUpper,
+                "price": stock2
+              }
+            ]
+          }
+      
+        })()
       }
       
       
