@@ -14,9 +14,9 @@ const fetch = require('node-fetch');
 
 const CONNECTION_STRING = process.env.DB; //MongoClient.connect(CONNECTION_STRING, function(err, db) {});
 
-module.exports = function (app) {
+module.exports = async function (app) {
 
-  app.route('/api/stock-prices')
+   app.route('/api/stock-prices')
     .get(function (req, res){
       console.log(process.env.ALPHA_VANTAGE_KEY)
       console.log('hi')
@@ -32,17 +32,39 @@ module.exports = function (app) {
       }
       
       function getStockPrice(symbol) {
+        console.log(symbol, 'symbol in getStockPrice')
         fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
           res => res.json()
         ).then(data => {
-          console.log(data)
-          return data;
+          //console.log(data)
+          return data
         })
+        
+        
       }
       const stockDataResponse = {};
 
       if(stockSymbol1) {
-        stockData.stock = getStockPrice()
+        (async () => {
+          const date = new Date();
+          const month = date.getMonth();
+          const today = date.getDay();
+          const year = date.getFullYear();
+          const dateRegex = new RegExp(`${month}-${today}-${year}`)
+          const stock1 = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockSymbol1}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
+            res => res.json()
+          ).then(data => {
+            //console.log(data)
+            return data
+          })
+          const timeSeriesDaily = 'Time Series (Daily)'
+          console.log(stock1.timeSeriesDaily, 'stock 1 before parse')
+          //const stock1Parsed = JSON.parse(stock1);
+          //console.log(stock1Parsed)
+        
+          //const answer = 
+        })()
+        
       }
       
       
