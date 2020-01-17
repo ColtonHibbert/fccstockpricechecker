@@ -18,9 +18,10 @@ module.exports = function (app) {
 
   app.route('/api/stock-prices')
     .get(function (req, res){
+      console.log(process.env.ALPHA_VANTAGE_KEY)
       console.log('hi')
       console.log(req.query)
-      fetch('https://finance.google.com/finance/info?q=NASDAQ%3aGOOG').then(
+      fetch(`https://alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=MSFT&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
         res => res.json()
       ).then(data => {
         console.log(data)

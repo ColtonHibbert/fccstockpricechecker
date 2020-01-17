@@ -11,7 +11,7 @@ var fccTestingRoutes  = require('./routes/fcctesting.js');
 var runner            = require('./test-runner');
 
 var app = express();
-
+require('dotenv').config()
 app.use('/public', express.static(process.cwd() + '/public'));
 
 app.use(cors({origin: '*'})); //For FCC testing purposes only
@@ -19,12 +19,12 @@ app.use(cors({origin: '*'})); //For FCC testing purposes only
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(helmet.contentSecurityPolicy({
-  directives: {
-    scriptSrc: ["'self'"],
-    styleSrc: ["'self'"]
-  }
-}))
+// app.use(helmet.contentSecurityPolicy({
+//   directives: {
+//     scriptSrc: ["'self'"],
+//     styleSrc: ["'self'"]
+//   }
+// }))
 
 //Index page (static HTML)
 app.route('/')
