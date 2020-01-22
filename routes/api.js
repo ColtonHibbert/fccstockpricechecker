@@ -18,18 +18,18 @@ module.exports = async function (app) {
 
    app.route('/api/stock-prices')
     .get(function (req, res){
-      console.log(process.env.ALPHA_VANTAGE_KEY)
-      console.log('hi')
       console.log(req.query)
       let stockSymbol1;
       let stockSymbol2;
-      if(req.query.stock[1]) {
+      if( typeof req.query.stock === "object" ) {
         stockSymbol1 = req.query.stock[0];
         stockSymbol2 = req.query.stock[1];
       } 
-      if(req.query.stock[0] !== true) {
+      if( typeof req.query.stock === "string" ) {
         stockSymbol1 = req.query.stock
       }
+      console.log('stocksymbol1', stockSymbol1)
+      console.log('stocksymbol2', stockSymbol2)
       
       function getStockPrice(symbol) {
         console.log(symbol, 'symbol in getStockPrice')
@@ -39,9 +39,8 @@ module.exports = async function (app) {
           //console.log(data)
           return data
         })
-        
-        
       }
+
       let stockDataResponse = {};
 
       if(stockSymbol1 && stockSymbol2 !== true ) {
@@ -75,6 +74,7 @@ module.exports = async function (app) {
       }
 
       if (stockSymbol1 && stockSymbol2) {
+        console.log('2 true')
         (async () => {
           const date = new Date();
           let month = (date.getMonth()) + 1;
@@ -112,6 +112,8 @@ module.exports = async function (app) {
               }
             ]
           }
+          console.log(stockDataResponse)
+          return stockDataResponse;
       
         })()
       }
