@@ -5,19 +5,7 @@ var bodyParser  = require('body-parser');
 var expect      = require('chai').expect;
 var cors        = require('cors');
 const helmet = require('helmet');
-const knex = require('knex');
 
-const db = knex({
-  client: 'pg',
-  connection: {
-    host: '127.0.0.01',
-    user: process.env.LOCAL_USER,
-    password: process.env.LOCAL_PASS,
-    database: 'fcc_stock_price_checker'
-  }
-});
-
-//knex.select('*').from('company').then(data => console.log(data))
 
 var apiRoutes         = require('./routes/api.js');
 var fccTestingRoutes  = require('./routes/fcctesting.js');
@@ -32,12 +20,24 @@ app.use(cors({origin: '*'})); //For FCC testing purposes only
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// app.use(helmet.contentSecurityPolicy({
-//   directives: {
-//     scriptSrc: ["'self'"],
-//     styleSrc: ["'self'"]
-//   }
-// }))
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    scriptSrc: ["'self'"],
+    styleSrc: ["'self'"]
+  }
+}))
+
+const knex = require('knex');
+
+const db = knex({
+  client: 'pg',
+  connection: {
+    host: '127.0.0.1',
+    user: process.env.LOCAL_USER,
+    password: process.env.LOCAL_PASS,
+    database: 'fcc_stock_price_checker'
+  }
+});
 
 //Index page (static HTML)
 app.route('/')
@@ -49,7 +49,8 @@ app.route('/')
 fccTestingRoutes(app);
 
 //Routing for API 
-apiRoutes(app);  
+// db injection
+apiRoutes(app, db);  
     
 //404 Not Found Middleware
 app.use(function(req, res, next) {

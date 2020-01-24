@@ -14,7 +14,7 @@ const fetch = require('node-fetch');
 
 const CONNECTION_STRING = process.env.DB; //MongoClient.connect(CONNECTION_STRING, function(err, db) {});
 
-module.exports = async function (app) {
+module.exports = async function (app, db) {
 
    app.route('/api/stock-prices')
     .get(function (req, res){
@@ -48,6 +48,46 @@ module.exports = async function (app) {
 
       let stockDataResponse = {};
 
+      async function checkTickerSymbol(symbol) {
+        let ticker = null; 
+        await db.select('ticker').from('company').where('ticker', '=', symbol)
+        .then(data => ticker = data)
+        .catch(err => console.log(err))
+        console.log(ticker);
+        if (ticker[0]) {
+          return true;
+        }
+        return false;
+      }
+
+      async function insertTicker(tickerInDB, stockSymbolUpper ) {
+          if(tickerInDB === false) {
+            await db.transaction(trx => {
+              trx.insert({ ticker: stockSymbolUpper}).into('company')
+              .then(trx.commit)
+              .catch(trx.rollback)
+            })
+            .catch(err => console.log(err))
+            return true
+          } 
+          return false;
+      }
+
+      async function incrementLike(like, stockSymbolUpper) {
+        if(like) {
+            await db.transaction(trx => {
+              trx('company').where('ticker', '=', stockSymbolUpper).increment('likes', 1)
+              .returning('likes')
+              .then(likes => console.log('likes',likes) )
+              .then(trx.commit)
+              .catch(trx.rollback)
+            })
+            .catch(err => console.log(err))
+            return true;
+          }
+          return false;
+      }
+
       if(stockSymbol1 && stockSymbol2 !== true ) {
         console.log('1 ran');
         (async () => {
@@ -69,6 +109,17 @@ module.exports = async function (app) {
           })
           //console.log(stock1)
           const stock1SymbolUpper = stockSymbol1.toUpperCase();
+
+          const tickerInDB = await checkTickerSymbol(stock1SymbolUpper);
+          console.log(tickerInDB, 'tickerInDB');
+          
+          const tickerInserted = await insertTicker(tickerInDB, stock1SymbolUpper);
+          console.log(tickerInserted, 'tickerInserted');
+           
+          const likeIncremented = await incrementLike(like, stock1SymbolUpper );
+          console.log(likeIncremented , 'likeIncremented');
+          
+
           stockDataResponse = {
             "stockData": {
               "stock": stock1SymbolUpper,
