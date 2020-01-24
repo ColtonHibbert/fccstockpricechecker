@@ -36,14 +36,15 @@ module.exports = async function (app, db) {
       console.log('stocksymbol2', stockSymbol2)
       console.log('like', like)
       
-      function getStockPrice(symbol) {
-        console.log(symbol, 'symbol in getStockPrice')
-        fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
+      async function getStockPrice(symbol, todaysDate) {
+        let stock = null;
+        await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
           res => res.json()
         ).then(data => {
-          //console.log(data)
-          return data
+          stock = data['Time Series (Daily)'][todaysDate]['1. open']
+          stock = Math.round(stock * 100) / 100;
         })
+        return stock
       }
 
       let stockDataResponse = {};
@@ -73,19 +74,34 @@ module.exports = async function (app, db) {
           return false;
       }
 
-      async function incrementLike(like, stockSymbolUpper) {
-        if(like) {
+      async function getLikes(like, stockSymbolUpper) {
+          let likes = null;
+          if(like) {
             await db.transaction(trx => {
               trx('company').where('ticker', '=', stockSymbolUpper).increment('likes', 1)
               .returning('likes')
-              .then(likes => console.log('likes',likes) )
+              .then(likeData => { 
+                console.log('likes',likeData)
+                likes = likeData;
+              })
               .then(trx.commit)
               .catch(trx.rollback)
             })
             .catch(err => console.log(err))
-            return true;
+            return likes;
           }
-          return false;
+          await db.transaction(trx => {
+            trx('company').where('ticker', '=', stockSymbolUpper).increment('likes', 1)
+            .returning('likes')
+            .then(likeData => { 
+              console.log('likes',likeData)
+              likes = likeData;
+            })
+            .then(trx.commit)
+            .catch(trx.rollback)
+          })
+          .catch(err => console.log(err))
+          return likes;  
       }
 
       if(stockSymbol1 && stockSymbol2 !== true ) {
@@ -99,16 +115,11 @@ module.exports = async function (app, db) {
           const dayOfMonth = date.getDate();
           const year = date.getFullYear();
           const todaysDate = `${year}-${month}-${dayOfMonth}`
-          const stock1 = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockSymbol1}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
-            res => res.json()
-          ).then(data => {
-            //console.log(data)
-            let stock = data['Time Series (Daily)'][todaysDate]['1. open']
-            stock = Math.round(stock * 100) / 100;
-            return stock
-          })
-          //console.log(stock1)
+          
           const stock1SymbolUpper = stockSymbol1.toUpperCase();
+
+          const stock1 = await getStockPrice(stock1SymbolUpper, todaysDate );
+          console.log(stock1, 'stock1')
 
           const tickerInDB = await checkTickerSymbol(stock1SymbolUpper);
           console.log(tickerInDB, 'tickerInDB');
@@ -116,14 +127,15 @@ module.exports = async function (app, db) {
           const tickerInserted = await insertTicker(tickerInDB, stock1SymbolUpper);
           console.log(tickerInserted, 'tickerInserted');
            
-          const likeIncremented = await incrementLike(like, stock1SymbolUpper );
-          console.log(likeIncremented , 'likeIncremented');
+          const likes = await getLikes(like, stock1SymbolUpper );
+          console.log(likes , 'likes');
           
 
           stockDataResponse = {
             "stockData": {
               "stock": stock1SymbolUpper,
-              "price": stock1
+              "price": stock1,
+              "likes": likes
             }
           }
           console.log(stockDataResponse)
@@ -141,32 +153,42 @@ module.exports = async function (app, db) {
           }
           const dayOfMonth = date.getDate();
           const year = date.getFullYear();
-          const todaysDate = `${year}-${month}-${dayOfMonth}`
-          const stock1 = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockSymbol1}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
-            res => res.json()
-          ).then(data => {
-            let stock = data['Time Series (Daily)'][todaysDate]['1. open']
-            stock = Math.round(stock * 100) / 100;
-            return stock
-          })
-          const stock2 = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockSymbol2}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
-            res => res.json()
-          ).then(data => {
-            let stock = data['Time Series (Daily)'][todaysDate]['1. open']
-            stock = Math.round(stock * 100) / 100;
-            return stock
-          })
+          const todaysDate = `${year}-${month}-${dayOfMonth}`;
           const stock1SymbolUpper = stockSymbol1.toUpperCase();
           const stock2SymbolUpper = stockSymbol2.toUpperCase();
+
+          const stock1 = await getStockPrice(stock1SymbolUpper, todaysDate);
+          
+          const stock2 = await getStockPrice(stock2SymbolUpper, todaysDate);
+         
+          const ticker1InDB = await checkTickerSymbol(stock1SymbolUpper);
+          
+          const ticker2InDB = await checkTickerSymbol(stock2SymbolUpper);
+          
+          const ticker1Inserted = await insertTicker(ticker1InDB, stock1SymbolUpper);
+
+          const ticker2Inserted = await insertTicker(ticker2InDB, stock2SymbolUpper);
+
+          const likes1 = await getLikes(like, stock1SymbolUpper);
+
+          const likes2 = await getLikes(like, stock2SymbolUpper);
+
+          const relLikes1 = likes1 - likes2;
+
+          const relLikes2 = likes2 - likes1;
+
+
           stockDataResponse = {
             "stockData": [
               { 
                 "stock": stock1SymbolUpper,
-                "price": stock1 
+                "price": stock1,
+                "rel_likes": relLikes1
               },
               {
                 "stock": stock2SymbolUpper,
-                "price": stock2
+                "price": stock2,
+                "rel_likes": relLikes2
               }
             ]
           }
