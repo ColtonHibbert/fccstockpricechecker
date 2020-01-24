@@ -21,6 +21,7 @@ module.exports = async function (app) {
       console.log(req.query)
       let stockSymbol1;
       let stockSymbol2;
+      let like = req.query.like;
       if( typeof req.query.stock === "object" ) {
         stockSymbol1 = req.query.stock[0];
         stockSymbol2 = req.query.stock[1];
@@ -28,8 +29,12 @@ module.exports = async function (app) {
       if( typeof req.query.stock === "string" ) {
         stockSymbol1 = req.query.stock
       }
+      if(like) {
+        like = true;
+      }
       console.log('stocksymbol1', stockSymbol1)
       console.log('stocksymbol2', stockSymbol2)
+      console.log('like', like)
       
       function getStockPrice(symbol) {
         console.log(symbol, 'symbol in getStockPrice')
@@ -44,6 +49,7 @@ module.exports = async function (app) {
       let stockDataResponse = {};
 
       if(stockSymbol1 && stockSymbol2 !== true ) {
+        console.log('1 ran');
         (async () => {
           const date = new Date();
           let month = (date.getMonth()) + 1;
@@ -61,7 +67,7 @@ module.exports = async function (app) {
             stock = Math.round(stock * 100) / 100;
             return stock
           })
-          console.log(stock1)
+          //console.log(stock1)
           const stock1SymbolUpper = stockSymbol1.toUpperCase();
           stockDataResponse = {
             "stockData": {
@@ -69,12 +75,13 @@ module.exports = async function (app) {
               "price": stock1
             }
           }
+          console.log(stockDataResponse)
+          return stockDataResponse;
         })()
-        return stockDataResponse;
       }
 
       if (stockSymbol1 && stockSymbol2) {
-        console.log('2 true')
+        console.log('2 true');
         (async () => {
           const date = new Date();
           let month = (date.getMonth()) + 1;
@@ -112,12 +119,10 @@ module.exports = async function (app) {
               }
             ]
           }
-          console.log(stockDataResponse)
+          console.log(stockDataResponse);
           return stockDataResponse;
-      
         })()
       }
-      
       
     });
     

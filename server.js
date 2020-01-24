@@ -5,6 +5,19 @@ var bodyParser  = require('body-parser');
 var expect      = require('chai').expect;
 var cors        = require('cors');
 const helmet = require('helmet');
+const knex = require('knex');
+
+const db = knex({
+  client: 'pg',
+  connection: {
+    host: '127.0.0.01',
+    user: process.env.LOCAL_USER,
+    password: process.env.LOCAL_PASS,
+    database: 'fcc_stock_price_checker'
+  }
+});
+
+//knex.select('*').from('company').then(data => console.log(data))
 
 var apiRoutes         = require('./routes/api.js');
 var fccTestingRoutes  = require('./routes/fcctesting.js');
