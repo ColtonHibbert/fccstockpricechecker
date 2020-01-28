@@ -46,7 +46,7 @@ module.exports = async function (app, db) {
           stock = data['Time Series (Daily)'][todaysDate]['1. open']
           stock = Math.round(stock * 100) / 100;
         })
-        return stock
+        return String(stock)
       }
 
       let stockDataResponse = {};
@@ -169,7 +169,7 @@ module.exports = async function (app, db) {
             }
           }
           console.log(stockDataResponse)
-          return stockDataResponse;
+          res.json(stockDataResponse);
         })()
       }
 
@@ -230,10 +230,11 @@ module.exports = async function (app, db) {
             ]
           }
           console.log(stockDataResponse);
-          return stockDataResponse;
+          res.json(stockDataResponse);
         })()
       }
       
+
     });
     
 };
