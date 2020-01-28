@@ -19,6 +19,8 @@ module.exports = async function (app, db) {
    app.route('/api/stock-prices')
     .get(function (req, res){
       console.log(req.query)
+      const ipAddress = req.connection.remoteAddress;
+      console.log(ipAddress, 'ip address')
       let stockSymbol1;
       let stockSymbol2;
       let like = req.query.like;
@@ -74,9 +76,11 @@ module.exports = async function (app, db) {
           return false;
       }
 
-      async function getLikes(like, stockSymbolUpper) {
+      async function getLikes(like, checkIp, stockSymbolUpper) {
           let likes = null;
-          if(like) {
+  
+          if(like && checkIp === false) {
+            console.log('like was true and checkip false')
             await db.transaction(trx => {
               trx('company').where('ticker', '=', stockSymbolUpper).increment('likes', 1)
               .returning('likes')
@@ -90,18 +94,37 @@ module.exports = async function (app, db) {
             .catch(err => console.log(err))
             return likes;
           }
-          await db.transaction(trx => {
-            trx('company').where('ticker', '=', stockSymbolUpper).increment('likes', 1)
-            .returning('likes')
-            .then(likeData => { 
-              console.log('likes',likeData)
-              likes = likeData;
-            })
-            .then(trx.commit)
-            .catch(trx.rollback)
+
+          // error from line below
+          await db.select('likes').from('company').where('ticker', '=', stockSymbolUpper)
+          .then(data => {
+            console.log(data, 'likes should be here')
+            likes = data[0].likes
           })
           .catch(err => console.log(err))
           return likes;  
+      }
+
+      async function getIp() {
+        let ipExists = false;
+        await db.select('ip').from('ip').where('ip', '=', ipAddress)
+        .then(data => {
+          console.log(data, 'ip address data in get ip')
+          if(data[0]) {
+            ipExists = true;
+          }
+        })
+        .catch(err => console.log(err))
+        console.log(ipExists)
+        return ipExists;
+      }
+
+      async function insertIp(ipAddress) {
+        db.transaction(trx => {
+          trx.insert({ip: ipAddress}).into('ip')
+          .then(trx.commit)
+          .catch(trx.rollback)
+        })
       }
 
       if(stockSymbol1 && stockSymbol2 !== true ) {
@@ -118,6 +141,13 @@ module.exports = async function (app, db) {
           
           const stock1SymbolUpper = stockSymbol1.toUpperCase();
 
+          const checkIp = await getIp(ipAddress);
+          console.log(checkIp, 'checkIp')
+
+          if(checkIp === false) {
+            insertIp(ipAddress)
+          } 
+
           const stock1 = await getStockPrice(stock1SymbolUpper, todaysDate );
           console.log(stock1, 'stock1')
 
@@ -127,7 +157,7 @@ module.exports = async function (app, db) {
           const tickerInserted = await insertTicker(tickerInDB, stock1SymbolUpper);
           console.log(tickerInserted, 'tickerInserted');
            
-          const likes = await getLikes(like, stock1SymbolUpper );
+          const likes = await getLikes(like, checkIp, stock1SymbolUpper );
           console.log(likes , 'likes');
           
 
@@ -157,6 +187,13 @@ module.exports = async function (app, db) {
           const stock1SymbolUpper = stockSymbol1.toUpperCase();
           const stock2SymbolUpper = stockSymbol2.toUpperCase();
 
+          const checkIp = await getIp(ipAddress);
+          console.log(checkIp, 'checkIp')
+
+          if(checkIp === false) {
+            insertIp(ipAddress)
+          } 
+
           const stock1 = await getStockPrice(stock1SymbolUpper, todaysDate);
           
           const stock2 = await getStockPrice(stock2SymbolUpper, todaysDate);
@@ -169,9 +206,9 @@ module.exports = async function (app, db) {
 
           const ticker2Inserted = await insertTicker(ticker2InDB, stock2SymbolUpper);
 
-          const likes1 = await getLikes(like, stock1SymbolUpper);
+          const likes1 = await getLikes(like, checkIp, stock1SymbolUpper);
 
-          const likes2 = await getLikes(like, stock2SymbolUpper);
+          const likes2 = await getLikes(like, checkIp, stock2SymbolUpper);
 
           const relLikes1 = likes1 - likes2;
 
