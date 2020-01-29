@@ -216,16 +216,16 @@ module.exports = async function (app, db) {
 
 
           stockDataResponse = {
-            "stockData": [
+            stockData: [
               { 
-                "stock": stock1SymbolUpper,
-                "price": stock1,
-                "rel_likes": relLikes1
+                stock: stock1SymbolUpper,
+                price: stock1,
+                rel_likes: relLikes1
               },
               {
-                "stock": stock2SymbolUpper,
-                "price": stock2,
-                "rel_likes": relLikes2
+                stock: stock2SymbolUpper,
+                price: stock2,
+                rel_likes: relLikes2
               }
             ]
           }
