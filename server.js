@@ -21,10 +21,10 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // causing errors
-
+//"'unsafe-inline'"
 app.use(helmet.contentSecurityPolicy({
   directives: {
-    scriptSrc: ["'self'", "'unsafe-inline'"],
+    scriptSrc: ["'self'"],
     styleSrc: ["'self'"]
   }
 }))
