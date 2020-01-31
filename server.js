@@ -24,7 +24,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 //"'unsafe-inline'"
 app.use(helmet.contentSecurityPolicy({
   directives: {
-    scriptSrc: ["'self'", 'https://code.jquery.com/jquery-2.2.1.min.js'],
+    scriptSrc: ['https://coltfccstockpricechecker.herokuapp.com/', 'https://code.jquery.com/jquery-2.2.1.min.js'],
     styleSrc: ['https://coltfccstockpricechecker.herokuapp.com/']
   }
 }))
