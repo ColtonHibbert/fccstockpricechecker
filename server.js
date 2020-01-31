@@ -31,15 +31,23 @@ app.use(helmet.contentSecurityPolicy({
 
 const knex = require('knex');
 
+// const db = knex({
+//   client: 'pg',
+//   connection: {
+//     host: '127.0.0.1',
+//     user: process.env.LOCAL_USER,
+//     password: process.env.LOCAL_PASS,
+//     database: 'fcc_stock_price_checker'
+//   }
+// });
+
 const db = knex({
   client: 'pg',
   connection: {
-    host: '127.0.0.1',
-    user: process.env.LOCAL_USER,
-    password: process.env.LOCAL_PASS,
-    database: 'fcc_stock_price_checker'
+    connectionString: process.env.DATABASE_URL,
+    ssl: true
   }
-});
+})
 
 //Index page (static HTML)
 app.route('/')
@@ -78,5 +86,6 @@ app.listen(process.env.PORT || 3000, function () {
     }, 3500);
   }
 });
+
 
 module.exports = app; //for testing
