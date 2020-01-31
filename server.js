@@ -22,12 +22,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // causing errors
 //"'unsafe-inline'"
-app.use(helmet.contentSecurityPolicy({
-  directives: {
-    scriptSrc: ['https://coltfccstockpricechecker.herokuapp.com/', 'https://code.jquery.com/jquery-2.2.1.min.js'],
-    styleSrc: ['https://coltfccstockpricechecker.herokuapp.com/']
-  }
-}))
+// app.use(helmet.contentSecurityPolicy({
+//   directives: {
+//     scriptSrc: ['https://coltfccstockpricechecker.herokuapp.com/', 'https://code.jquery.com/jquery-2.2.1.min.js'],
+//     styleSrc: ['https://coltfccstockpricechecker.herokuapp.com/']
+//   }
+// }))
 
 const knex = require('knex');
 
