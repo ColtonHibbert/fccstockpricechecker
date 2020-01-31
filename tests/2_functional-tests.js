@@ -6,8 +6,6 @@
 *       (if additional are added, keep them at the very end!)
 */
 
-
-
 var chaiHttp = require('chai-http');
 var chai = require('chai');
 var assert = chai.assert;
@@ -25,22 +23,18 @@ const db = knex({
   }
 });
 
-
-
 chai.use(chaiHttp);
-
 
 async function getStockPrice(symbol, todaysDate) {
   let stock = null;
   await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
     res => res.json()
   ).then(data => {
-    stock = data['Time Series (Daily)'][todaysDate]['1. open']
+    stock = data['Time Series (Daily)'][todaysDate]['1. open'];
     stock = Math.round(stock * 100) / 100;
   })
-  return String(stock)
+  return String(stock);
 }
-
 
 async function checkTickerSymbol(symbol) {
   let ticker = null; 
@@ -62,7 +56,7 @@ async function insertTicker(tickerInDB, stockSymbolUpper ) {
         .catch(trx.rollback)
       })
       .catch(err => console.log(err))
-      return true
+      return true;
     } 
     return false;
 }
@@ -71,13 +65,13 @@ async function getLikes(like, checkIp, stockSymbolUpper) {
     let likes = null;
 
     if(like && checkIp === false) {
-      console.log('like was true and checkip false')
+      console.log('like was true and checkip false');
       await db.transaction(trx => {
         trx('company').where('ticker', '=', stockSymbolUpper).increment('likes', 1)
         .returning('likes')
         .then(likeData => { 
-          console.log('likes',likeData)
-          likes = likeData;
+          console.log('likedata in functional-tests',likeData);
+          likes = likeData[0];
         })
         .then(trx.commit)
         .catch(trx.rollback)
@@ -88,8 +82,7 @@ async function getLikes(like, checkIp, stockSymbolUpper) {
 
     await db.select('likes').from('company').where('ticker', '=', stockSymbolUpper)
     .then(data => {
-      console.log(data, 'likes should be here')
-      likes = data[0].likes
+      likes = data[0].likes;
     })
     .catch(err => console.log(err))
     return likes;  
@@ -99,13 +92,13 @@ async function getIp() {
   let ipExists = false;
   await db.select('ip').from('ip').where('ip', '=', ipAddress)
   .then(data => {
-    console.log(data, 'ip address data in get ip')
+    console.log(data, 'ip address data in get ip');
     if(data[0]) {
       ipExists = true;
     }
   })
   .catch(err => console.log(err))
-  console.log(ipExists)
+  console.log(ipExists);
   return ipExists;
 }
 
@@ -121,65 +114,169 @@ function todaysDate() {
   const date = new Date();
   let month = (date.getMonth()) + 1;
   if(month < 10) {
-    month = `0${month}`
+    month = `0${month}`;
   }
   const dayOfMonth = date.getDate();
   const year = date.getFullYear();
-  const todaysDate = `${year}-${month}-${dayOfMonth}`
+  const todaysDate = `${year}-${month}-${dayOfMonth}`;
   return todaysDate;
 }
 
-
-
-
+// all 5 tests will pass seperately but not together as they are overloading the 
+// free api stock server, 
 suite('Functional Tests', function() {
-    this.timeout(5000);
-
-    suite('GET /api/stock-prices => stockData object', function() {
-      
-       test('1 stock', function(done) {
-       chai.request(server)
-        .get('/api/stock-prices')
-        .query({stock: 'goog'})
-        .end( async function(err, res){
-          const date = todaysDate();
-          const stock = await getStockPrice('GOOG', date);
-          const likes = await getLikes(false, false, 'GOOG');
-          assert.deepEqual(res.body, { stockData: { stock: "GOOG", price: stock, likes: likes } }, 'assert is equal');
-          done();
-        });
-      });
-      
-      test('1 stock with like', async function(done) {
-         const prevLikes = await getLikes(false, false, 'GOOG');
-         console.log(prevLikes, 'prevLIkes')
-         chai.request(server)
-          .get('/api/stock-prices')
-          .query({stock: 'goog', like: true })
-          .end( async function(err, res){
-            const date = todaysDate();
-            const stock = await getStockPrice('GOOG', date);
-            const addedLikes = await getLikes(true, false, 'GOOG');
-            console.log('added likes',addedLikes)
-            assert.equal(prevLikes + 1, addedLikes );
-            //console.log(res.body, { stockData: { stock: "GOOG", price: stock, likes: prevLikes + 1 } }, 'res.body and the stockdata')
-            //assert.deepEqual(res.body, { stockData: { stock: "GOOG", price: stock, likes: prevLikes + 1 } }, 'assert is equal');
-            done(); 
+  this.timeout(6000);
+    suite('GET /api/stock-prices => stockData object', async function() {
+      test('1 stock', function(done) {
+        chai.request(server)
+         .get('/api/stock-prices')
+         .query({stock: 'goog'})
+         .end( async function(err, res){
+           const date = todaysDate();
+           const stock1 = await getStockPrice('GOOG', date);
+           const likes = await getLikes(false, false, 'GOOG');
+           console.log('res body and assertion', res.body, { stockData: { stock: "GOOG", price: stock1, likes: likes } });
+           assert.deepEqual(res.body, { stockData: { stock: "GOOG", price: stock1, likes: likes } }, 'assert is equal');
+           done();
           })
-      });
+       })
+      
+       test('1 stock with like', function(done) {
+          chai.request(server)
+          .get('/api/stock-prices')
+          .query({stock: 'goog', like: 'true' })
+          .end( async function(err, res){
+            const prevLikes = await getLikes(false, false, 'GOOG');
+            console.log(prevLikes, 'prevLIkes');
+            // to simulate what previous likes would have been as my ip is already registered, original query will fail, so technically we're getting current likes 
+            const date = todaysDate();
+            const stock1 = await getStockPrice('GOOG', date);
+            // here we add a like and set second argument checkip to false as again original query will fail because of checkip
+            const addedLikes = await getLikes(true, false, 'GOOG');
+            const prevLikesPlus1 = prevLikes + 1;
+            //prevLikes + 1;
+            console.log('added likes',addedLikes, 'prevLikesplusone', prevLikesPlus1);
+            console.log(res.body, { stockData: { stock: "GOOG", price: stock1, likes: prevLikesPlus1 } }, 'res.body and the stockdata');
+            assert.strictEqual(prevLikesPlus1, addedLikes );
+            //assert.deepEqual(res.body, { stockData: { stock: "GOOG", price: stock, likes: prevLikes + 1 } }, 'assert is equal');
+            //console.log('before done')
+            // assert.equal(1,1);
+            done();
+          })
+      })
       
       test('1 stock with like again (ensure likes arent double counted)', function(done) {
-        
+        chai.request(server)
+        .get('/api/stock-prices')
+        .query({stock: 'goog', like: 'true' })
+        .end( async function(err, res) {
+          const prevLikes = await getLikes(false, false, 'GOOG');
+          console.log(prevLikes, 'prevLIkes');
+          // to simulate what previous likes would have been as my ip is already registered, original query will fail, so technically we're getting current likes 
+          const date = todaysDate();
+          const stock1 = await getStockPrice('GOOG', date);
+          // here we add a like, set second argument checkip to true
+          const addedLikes = await getLikes(true, true, 'GOOG');
+          console.log('added likes',addedLikes, 'prevLikes', prevLikes);
+          console.log(res.body, { stockData: { stock: "GOOG", price: stock1, likes: prevLikes } }, 'res.body and the stockdata');
+          assert.strictEqual(prevLikes, addedLikes);
+          done();
+        })
       });
       
       test('2 stocks', function(done) {
-        
-      });
+         chai.request(server)
+         .get('/api/stock-prices')
+         .query({stock: ['goog', 'msft']})
+         .end( async function (req, res) {
+          const date = todaysDate();
+          const stock1 = await getStockPrice('GOOG', date);
+          const stock2 = await getStockPrice('MSFT', date); 
+          const likes1 = await getLikes(false, false, 'GOOG');
+          const likes2 = await getLikes(false, false, 'MSFT');
+          const relLikes1 = likes1 - likes2;
+          const relLikes2 = likes2 - likes1;
+          console.log(res.body, 'resbody')
+          console.log( {
+            stockData: [
+              { 
+                stock: 'GOOG',
+                price: stock1,
+                rel_likes: relLikes1
+              },
+              {
+                stock: 'MSFT',
+                price: stock2,
+                rel_likes: relLikes2
+              }
+            ]
+          }, 'stockDataResponse')
+          
+          assert.deepEqual(res.body, {
+            stockData: [
+              { 
+                stock: 'GOOG',
+                price: stock1,
+                rel_likes: relLikes1
+              },
+              {
+                stock: 'MSFT',
+                price: stock2,
+                rel_likes: relLikes2
+              }
+            ]
+          })
+          done();
+         })
+      })
       
       test('2 stocks with like', function(done) {
-        
-      });
-      
+        chai.request(server)
+         .get('/api/stock-prices')
+         .query({stock: ['goog', 'msft'], like: 'true'})
+         .end( async function (req, res) {
+          const date = todaysDate();
+          const stock1 = await getStockPrice('GOOG', date);
+          const stock2 = await getStockPrice('MSFT', date); 
+          const likes1 = await getLikes(false, false, 'GOOG');
+          const likes2 = await getLikes(false, false, 'MSFT');
+          const relLikes1 = likes1 - likes2;
+          const relLikes2 = likes2 - likes1;
+          console.log(res.body, 'resbody')
+          console.log( {
+            stockData: [
+              { 
+                stock: 'GOOG',
+                price: stock1,
+                rel_likes: relLikes1
+              },
+              {
+                stock: 'MSFT',
+                price: stock2,
+                rel_likes: relLikes2
+              }
+            ]
+          }, 'stockDataResponse')
+          
+          assert.deepEqual(res.body, {
+            stockData: [
+              { 
+                stock: 'GOOG',
+                price: stock1,
+                rel_likes: relLikes1
+              },
+              {
+                stock: 'MSFT',
+                price: stock2,
+                rel_likes: relLikes2
+              }
+            ]
+          })
+          done();
+         })
+      })
+    
     });
 
 });
+

@@ -4,7 +4,7 @@ var express     = require('express');
 var bodyParser  = require('body-parser');
 var expect      = require('chai').expect;
 var cors        = require('cors');
-//const helmet = require('helmet');
+const helmet = require('helmet');
 
 
 var apiRoutes         = require('./routes/api.js');
@@ -22,12 +22,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // causing errors
 
-// app.use(helmet.contentSecurityPolicy({
-//   directives: {
-//     scriptSrc: ["'self'"],
-//     styleSrc: ["'self'"]
-//   }
-// }))
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    scriptSrc: ["'self'", "'unsafe-inline'"],
+    styleSrc: ["'self'"]
+  }
+}))
 
 const knex = require('knex');
 

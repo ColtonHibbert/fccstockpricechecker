@@ -18,9 +18,9 @@ module.exports = async function (app, db) {
 
    app.route('/api/stock-prices')
     .get(function (req, res){
-      console.log(req.query)
+      console.log(req.query);
       const ipAddress = req.connection.remoteAddress;
-      console.log(ipAddress, 'ip address')
+      console.log(ipAddress, 'ip address');
       let stockSymbol1;
       let stockSymbol2;
       let like = req.query.like;
@@ -29,24 +29,24 @@ module.exports = async function (app, db) {
         stockSymbol2 = req.query.stock[1];
       } 
       if( typeof req.query.stock === "string" ) {
-        stockSymbol1 = req.query.stock
+        stockSymbol1 = req.query.stock;
       }
       if(like) {
         like = true;
       }
-      console.log('stocksymbol1', stockSymbol1)
-      console.log('stocksymbol2', stockSymbol2)
-      console.log('like', like)
+      console.log('stocksymbol1', stockSymbol1);
+      console.log('stocksymbol2', stockSymbol2);
+      console.log('like', like);
       
       async function getStockPrice(symbol, todaysDate) {
         let stock = null;
         await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=compact&apikey=${process.env.ALPHA_VANTAGE_KEY}`).then(
           res => res.json()
         ).then(data => {
-          stock = data['Time Series (Daily)'][todaysDate]['1. open']
+          stock = data['Time Series (Daily)'][todaysDate]['1. open'];
           stock = Math.round(stock * 100) / 100;
         })
-        return String(stock)
+        return String(stock);
       }
 
       let stockDataResponse = {};
@@ -71,7 +71,7 @@ module.exports = async function (app, db) {
               .catch(trx.rollback)
             })
             .catch(err => console.log(err))
-            return true
+            return true;
           } 
           return false;
       }
@@ -85,7 +85,7 @@ module.exports = async function (app, db) {
               trx('company').where('ticker', '=', stockSymbolUpper).increment('likes', 1)
               .returning('likes')
               .then(likeData => { 
-                console.log('likes',likeData)
+                console.log('likeData in api', likeData);
                 likes = likeData;
               })
               .then(trx.commit)
@@ -98,8 +98,7 @@ module.exports = async function (app, db) {
           // error from line below
           await db.select('likes').from('company').where('ticker', '=', stockSymbolUpper)
           .then(data => {
-            console.log(data, 'likes should be here')
-            likes = data[0].likes
+            likes = data[0].likes;
           })
           .catch(err => console.log(err))
           return likes;  
@@ -115,7 +114,7 @@ module.exports = async function (app, db) {
           }
         })
         .catch(err => console.log(err))
-        console.log(ipExists)
+        console.log(ipExists);
         return ipExists;
       }
 
@@ -126,30 +125,38 @@ module.exports = async function (app, db) {
           .catch(trx.rollback)
         })
       }
-
-      if(stockSymbol1 && stockSymbol2 !== true ) {
-        console.log('1 ran');
+      if (stockSymbol2  === undefined ) {
+        console.log('what the heck')
+      }
+      if(stockSymbol1 === true) {
+        console.log('sybol1 is true, what the heck')
+      }
+      if(stockSymbol1) {
+        console.log('symbol 1 is truthy, not the same as')
+      }
+      if(stockSymbol1 && stockSymbol2 === undefined ) {
+        console.log('first ran');
         (async () => {
           const date = new Date();
           let month = (date.getMonth()) + 1;
           if(month < 10) {
-            month = `0${month}`
+            month = `0${month}`;
           }
           const dayOfMonth = date.getDate();
           const year = date.getFullYear();
-          const todaysDate = `${year}-${month}-${dayOfMonth}`
+          const todaysDate = `${year}-${month}-${dayOfMonth}`;
           
           const stock1SymbolUpper = stockSymbol1.toUpperCase();
 
           const checkIp = await getIp(ipAddress);
-          console.log(checkIp, 'checkIp')
+          console.log(checkIp, 'checkIp');
 
           if(checkIp === false) {
-            insertIp(ipAddress)
+            insertIp(ipAddress);
           } 
 
           const stock1 = await getStockPrice(stock1SymbolUpper, todaysDate );
-          console.log(stock1, 'stock1')
+          console.log(stock1, 'stock1');
 
           const tickerInDB = await checkTickerSymbol(stock1SymbolUpper);
           console.log(tickerInDB, 'tickerInDB');
@@ -168,13 +175,13 @@ module.exports = async function (app, db) {
               "likes": likes
             }
           }
-          console.log(stockDataResponse)
+          console.log(stockDataResponse);
           res.json(stockDataResponse);
         })()
       }
 
       if (stockSymbol1 && stockSymbol2) {
-        console.log('2 true');
+        console.log('second ran');
         (async () => {
           const date = new Date();
           let month = (date.getMonth()) + 1;
@@ -228,13 +235,12 @@ module.exports = async function (app, db) {
                 rel_likes: relLikes2
               }
             ]
-          }
-          console.log(stockDataResponse);
+          };
+          console.log(stockDataResponse, 'stockDataResponse in api.js');
           res.json(stockDataResponse);
         })()
       }
       
-
     });
     
 };
